@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+* {
+  box-sizing: border-box;
+}
+
+[class*="col-"] {
+  float: left;
+  padding: 15px;
+}
+
+.col-1 {width: 8.33%;}
+.col-2 {width: 16.66%;}
+.col-3 {width: 25%;}
+.col-4 {max-width: 100%;}
+.col-5 {width: 41.66%;}
+.col-6 {width: 50%;}
+.col-7 {width: 58.33%;}
+.col-8 {width: 66.66%;}
+.col-9 {width: 75%;}
+.col-10 {width: 83.33%;}
+.col-11 {width: 91.66%;}
+.col-12 {width: 100%;}
+
+html {
+  font-family: "Lucida Sans", sans-serif;
+  padding:5px;
+}
+
+.hdr{
+  color: #ffffff;
+  padding: 15px 0px 15px 15px;
+  font-size:26px;
+}
+
+.ml-1 {
+  margin-left:30px;
+}
+
+.center {
+text-align:center;
+}
+
+body {
+    color: #fff !important;
+	font-weight: bold !important;
+	background-color:#E5A307;
+	padding:none !important;
+	margin:none !important;
+	/*width:500px !important;*/
+}
+
+</style>
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script type="text/javascript">
+var setsNumber;
+var workingInterval;
+var restInterval;
+var recurringJob;
+var isPaused = false;
+var currentIntervalType; 
+var workingIntervalPrimarySet;
+var restIntervalPrimarySet;
+
+const intervalTypes = {
+    WORK: 'work',
+    REST: 'rest'
+}
+	
+
+$(document).ready(function() {
+  $("#Pause").hide();
+   $("#Stop").hide();
+   
+    $("#Start").click(function() {
+        initializeInterval();
+    });
+
+    $("#Pause").click(function() {
+        clearInterval(recurringJob);
+        isPaused = true;
+    });
+
+    $("#Stop").click(function() {
+        clearInterval(recurringJob);
+        clearForm();
+        clearDataFromStorage();
+    });
+	
+	currentIntervalType = intervalTypes.WORK;
+
+});
+
+function clearForm() {
+    $('#fSetNumber').val('');
+    $('#fWorkingInterval').val('');
+    $('#fRestTime').val('');
+    $('#time').html('00:00');
+    $('#interval').html('0');
+
+    setsNumber = undefined;
+    workingInterval = undefined;
+    restInterval = undefined;
+    recurringJob = undefined;
+    isPaused = false;
+}
+
+function initializeInterval() {
+
+    var isValidInput = validateInput();
+
+    if (!isPaused) {
+        setStartUpData();
+    }
+	if(isValidInput){
+		recurringJob = setInterval('displayData()', 1000);
+	}
+}
+
+function displayData(){ 
+    
+	getDataFromStorage();
+	
+	switch(currentIntervalType){
+	 case intervalTypes.WORK:
+	 workTimeInterval();
+	 break;
+	 case intervalTypes.REST:
+	 restTimeInterval();
+	 break;
+	 case intervalTypes.WORK:
+	 workTimeInterval();
+	 break;
+	}
+	     setDataToStorage();
+		 getDataFromStorage();
+		  
+		 if(setsNumber == 0){
+		 clearInterval(recurringJob);
+	  }
+}
+
+function workTimeInterval(){
+		 $("#Start").show();
+		 $("#Pause").show();
+		 $("#Stop").show();
+		 
+		 $("#intervalName").html(intervalTypes.WORK);
+		 document.body.style.background =  "#01B35D";
+		//alerts
+		if(workingInterval == workingIntervalPrimarySet){
+			alarmOnStart(true);
+		}
+		alarmOnEnd(workingInterval);
+			
+		//display
+		displayTimeFormat(workingInterval);
+		workingInterval -= 1;
+		if(workingInterval < 0){
+			   setsNumber -= 1;
+			   workingInterval = workingIntervalPrimarySet;
+			   currentIntervalType = intervalTypes.REST;
+		}
+}
+
+function restTimeInterval(){
+		$("#Start").hide();
+		$("#Pause").hide();
+		 $("#Stop").hide();
+		  $("#intervalName").html(intervalTypes.REST);
+	    document.body.style.background =  "#0961A9";
+		//alerts
+		if(restInterval == restIntervalPrimarySet){
+			alarmOnStart(true);
+		}   
+		alarmOnEnd(restInterval);
+			   
+		//display
+		displayTimeFormat(restInterval);
+		restInterval -= 1;
+		if(restInterval < 0){
+		   setsNumber -= 1;
+		   restInterval = restIntervalPrimarySet;
+		    currentIntervalType = intervalTypes.WORK;
+		}
+}
+
+function alarmOnStart(isStarted){
+  if(isStarted){
+    $('#startSound')[0].play();
+  }
+}
+
+function alarmOnEnd(timer){
+  if(timer <= 3){
+    $('#endSound')[0].play();
+  }
+}
+
+function validateInput() {
+
+    if ($('#fSetNumber').val() == '' ||
+        $('#fWorkingInterval').val() == '' ||
+        $('#fRestTime').val() == '') {
+        $('#requiredFieldsValidator').show();
+        return false;
+    }
+    $('#requiredFieldsValidator').hide();
+    return true;
+}
+
+function displayTimeFormat(timer) {
+
+    var minutes = Math.floor(timer/60);
+    var seconds = timer % 60;
+
+    if (minutes < 10) {
+        minutes = "0" + minutes;
+    }
+    if (seconds < 10) {
+        seconds = "0" + seconds;
+    }
+
+    $('#time').html(minutes + ":" + seconds);
+    $('#interval').html(setsNumber);
+}
+
+function setStartUpData() {
+    localStorage.setItem('setsNumber', $('#fSetNumber').val());
+    localStorage.setItem('workingInterval', $('#fWorkingInterval').val());
+    localStorage.setItem('restInterval', $('#fRestTime').val());
+	localStorage.setItem('workingIntervalPrimarySet', $('#fWorkingInterval').val());
+    localStorage.setItem('restIntervalPrimarySet', $('#fRestTime').val());
+}
+
+function getDataFromStorage() {
+    setsNumber = Number(localStorage.getItem('setsNumber'));
+    workingInterval = Number(localStorage.getItem('workingInterval'));
+    restInterval = Number(localStorage.getItem('restInterval'));
+	workingIntervalPrimarySet = Number(localStorage.getItem('workingIntervalPrimarySet'));
+    restIntervalPrimarySet = Number(localStorage.getItem('restIntervalPrimarySet'));
+}
+
+function setDataToStorage() {
+    localStorage.setItem('setsNumber', setsNumber);
+    localStorage.setItem('workingInterval', workingInterval);
+    localStorage.setItem('restInterval', restInterval);
+}
+
+function clearDataFromStorage() {
+    localStorage.clear();
+}
+
+</script>
+</head>
+<body style="background-color:#E5A307;">
+
+<div class="row">
+<span  class="center hdr">jQuery Timer</span>
+</div>
+<div id="requiredFieldsValidator" class="" style="color: red;display:none;background:white;padding:5px;">To start, you need to complete all the fields.</div>
+<div class="row">
+  <div class="col">
+    <label for="fSetNumber">Number of sets:</label>
+    <input   class="form-control" type="number" id="fSetNumber" name="fSetNumber" min="0" max="10"><br><br>
+  </div>
+</div>
+<div class="row">
+  <div class="col">
+    <label for="fWorkingInterval">Working Interval (sec):</label>
+    <input   class="form-control" type="number" id="fWorkingInterval" name="fWorkingInterval" min="0"><br><br>
+  </div>
+    </div>
+	<div class="row">
+  <div class="col">
+    <label for="fRestTime">Rest Time (sec):</label>
+    <input class="form-control" type="number" id="fRestTime" name="fRestTime" min="0"><br><br>
+  </div>
+  </div>
+ <div class="row">
+  	<h1 style="margin:0 auto;"><span id="interval">0</span>	</h1>
+	</div>
+	 <div class="row">
+	<h1 style="margin:0 auto;"><span id="time">00:00</span>	</div>
+	 <div class="row">
+	<h1 style="margin:0 auto;opacity:0.5;text-transform:uppercase;"><span id="intervalName">GET READY</span>	</div>
+
+<div class="row" style="float: right;margin-top: 40px;">
+
+  <div class="col">
+	<input type="button" id="Start" value="Start" class="btn btn-success" required>
+	<input type="button" id="Pause" value="Pause" class="btn btn-warning ml-2" required>
+	<input type="button" id="Stop" value="Stop" class="btn btn-danger ml-2" required>
+  </div>
+  
+</div>
+
+<div class="row alert">
+<audio id="startSound">
+        <source src="Alarm/AlarmChime_AP1.132.mp3"></source>
+</audio>
+<audio id="endSound">
+        <source src="Alarm/AlarmChime_AP1.132.mp3"></source>
+</audio>
+</div>
+
+</div>
+</body>
+</html>
